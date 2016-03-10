@@ -1,0 +1,12 @@
+Q1.What is the purpose of having an individual handler function for each exception/interrupt?
+    很显然对于不同的中断系统应当视情况作出相应的处理，当所有的情况用一个handler来处理时，JOS在handler函数里是无法区分中断类型的。
+
+Q2.The grade script expects it to produce a general protection fault (trap 13), but softint's code says int $14. Why should this produce interrupt vector 13? 
+    因为这里14号Page fault只有内核权限可以抛出，运行用户态的代码softint会导致13号权限错误（GP Fault）。
+    在SETGATE函数中将14号运行权限参数修改为3，发现可以正常提示Page Fault但是err的值变成0x800039，提示[kern，read，not-present]，仔细观察可以发现原因在于用户int指令调用是不会在栈中压入错误码的，导致从栈上取出值的时候与寄存器错位了，err是原本应该赋给eip的值，eip赋成了cs的值……
+
+Q3.How do you need to set it up in order to get the breakpoint exception to work as specified above and what incorrect setup would cause it to trigger a general protection fault?
+    要在SETGATE的时候将BRKPT设置为Ring3级别，因为设置breakpoint是用户态的行为，但不需要讲DEBUG设置为Ring3，因为单步调试执行一步后停止并不受用户控制，不应该给予用户权限主动触发该中断。
+
+Q4.What do you think is the point of these mechanisms, particularly in light of what the user/softint test program does?
+    将内核与用户权限分离开的机制肯定是为了安全，通过设置权限限制用户态的行为，不让恶意的用户态程序破坏整个系统的核心部分。softint程序在Q2中提到过，正是因为14号Page fault在用户态权限下不能抛出，所以会提示权限错误。

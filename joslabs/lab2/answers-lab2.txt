@@ -1,0 +1,32 @@
+Question1
+	这里x显然不是physaddr_t，因为x和value在运行时都需要经过两级页表转换，如果是物理地址那经过翻译就会得到一个莫名其妙的地址，所以这里是uintptr_t。
+
+Question2
+可以根据提供的虚拟内存分布图结合计算来回答：
+Entry	Base Virtual Address	Points to (logically):
+1023	0xffc00000			Page table for top 4MB of phys memory
+1022	0xff800000		?
+.	..			..
+960	0xf0000000		KERNBASE
+959	0xefc00000		KSTACKTOP
+958	0xef800000    		ULIM
+957	0xef400000		UVPT
+956	0xef000000		UPAGES
+955	0xeec00000		UTOP,UENVS
+.	..			..
+2	0x00800000		UTEXT
+1	0x00400000		UTEMP
+0	0x00000000		
+
+Question3
+	练习3阅读内容中的6.4节提到了给每一个页设置一个或多个标识位来表明操作权限。在JOS中，将页表项的值与PTE_U做与运算可以快速判断该页是内核权限还是用户权限。
+
+Question4
+	根据part3我们知道alloc出的pages数组被映射到了UPAGES开始的区间，利用程序打印UVPT-UPAGES这段得到结果为0x400000，目前只分配了0x21000，有了这段信息，再根据每个Page结构体占0x8，得到可映射的最多的物理地址为0x400000/0x8*PGSIZE=2^31=2GB。
+
+Question5
+	一个页面大小的一级页表目录，加上1024个页表，每个页表有一页大小（4096），页表目录对应4M的页表映射，总空间为4M+4K，然而满映射情况下每个二级页表有1024个目录项，所以总共能够映射4G的空间，现在在物理地址最多能够映射2G的情况下，需要的空间开销减为2M+4K。
+
+Question6
+	在jmp *%eax之后。
+	原因在于虚拟地址的前4M空间映射到了物理地址的前4M空间，在之后载入内核页表目录的时候这块空间会被丢弃。
